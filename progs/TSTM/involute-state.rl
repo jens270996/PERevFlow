@@ -1,9 +1,8 @@
-(Rules, Involution) -> (Rules,Involution)
-with (Q Q1 Q2 S1 S2 Q1' Q2' S1' S2' From To Rules' RulesRev RulesRev' InvolutionRev RulesOut)
+(Rules Involution) -> (Rules Involution)
+with (Q Q1 Q2 S1 S2 Q1' Q2' S1' S2' From To InvolutionRev RulesOut)
 
 init: entry
-    Rules' ^= Rules
-    goto loop:
+    goto loop
 
 loop: fi !RulesOut from init else resetsDone
     if !Rules goto done else pickRule
@@ -20,12 +19,14 @@ invertMove: from invertAction
     if S2 = 'LEFT goto invertLeft else invertRight
 
 invertRight: from invertMove
+    'RIGHT <- S2 //Not working for some reason? S2 ^= 'RIGHT instead?
     S2' <- 'LEFT
-    goto invertedMove
+    goto invertMove1
 
 invertLeft: from invertMove
     S2' <- 'RIGHT
-    goto invertedMove
+    'LEFT <- S2
+    goto invertMove1
 
 invertMove1: fi S2' = 'LEFT from invertRight else invertLeft
     goto invertionDone
@@ -41,6 +42,14 @@ resetsDone: from Q2reset
     RulesOut <- ( (Q1' . (S1' . (S2' . Q2'))). RulesOut) // insert involuted rule
     goto loop
 
+done: from loop
+    (RulesOut . Rules) <- (Rules . RulesOut)
+    exit
+    //RulesOut contains inverted rules
+    //Rules is empty
+    //Involution is same as start of call
+
+
 //--------------------------------------------------------------------------------
 //                         PICKS OUT Q1' and Q2' does nothing else
 //---------------------------------------------------------------------------------
@@ -51,7 +60,7 @@ findInvolution1: from loop1
     ((From . To) . Involution) <- Involution
     if From = Q1 goto setMatch else putInRev
 
-putInRev: fi Q2' = To from setMatch else putInRev
+putInRev: fi Q2' = To from setMatch else findInvolution1
     InvolutionRev <- ((From . To) . InvolutionRev)
     goto loop1
 setMatch: from findInvolution1
@@ -69,7 +78,7 @@ findInvolution2: from loop2
     ((From . To) . Involution) <- Involution
     if From = Q2 goto setMatch2 else putInRev2
 
-putInRev2: fi Q1' ^= To from setMatch2 else putInRev2
+putInRev2: fi Q1' = To from setMatch2 else findInvolution2
     InvolutionRev <- ((From . To) . InvolutionRev)
     goto loop2
 setMatch2: from findInvolution2
@@ -98,7 +107,7 @@ findQ1: from rloop1
     ((From . To) . Involution) <- Involution
     if To = Q2' goto unsetMatch else rputInRev
 
-rputInRev: fi To = Q2' from unsetMatch else rputInRev
+rputInRev: fi To = Q2' from unsetMatch else findQ1
     InvolutionRev <- ((From . To) . InvolutionRev)
     goto rloop1
 unsetMatch: from findQ1
@@ -116,14 +125,14 @@ findQ2: from rloop2
     ((From . To) . Involution) <- Involution
     if To = Q1' goto unsetMatch2 else rputInRev2
 
-rputInRev2: fi Q1' ^= To from setMatch2 else putInRev2
+rputInRev2: fi Q1' = To from unsetMatch2 else findQ2
     InvolutionRev <- ((From . To) . InvolutionRev)
     goto rloop2
-unsetMatch2: from findInvolution2
+unsetMatch2: from findQ2
     Q2 ^= From //Resets Q2
     goto rputInRev2
 
-Q2reset: from loop2
+Q2reset: from rloop2
     (Involution . InvolutionRev ) <- (InvolutionRev . Involution)
     //Q1' contains mapping for Q2
     //Q2' contains mapping for Q1
